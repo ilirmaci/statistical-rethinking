@@ -1,0 +1,139 @@
+---
+title: 'Chapter 3: Sampling the Imaginary'
+output:
+  html_document:
+    df_print: paged
+---
+```{r, setup, warning=FALSE, message=FALSE}
+library(rethinking)
+library(magrittr)
+sessionInfo()
+```
+
+## Easy
+Same setup as the globe-tossing example in the chapter
+```{r, easy setup}
+grid_size <- 1000
+num_samples <- 1e4
+p_grid <- seq(from=0, to=1, length.out=grid_size)
+prior <- rep(1, grid_size)
+
+binom_likelihood <- function(prob, trials, successes) {
+  # Return vector of likelihood weights corresponding to
+  # success probability `prob` given a fixed number of `trials`
+  # and `successes`
+  return(dbinom(x=successes, size=trials, prob=prob))
+}
+
+likelihood <- binom_likelihood(p_grid, 9, 6)  ## example in text
+posterior <- prior * likelihood
+posterior <- posterior / sum(posterior)
+
+set.seed(100)
+samples <- sample(p_grid, prob=posterior, size=num_samples, replace=TRUE)
+hist(samples, breaks=50)
+```
+
+### 3E1
+How much posterior probability lies below $p = 0.2$?
+```{r, 3e1}
+mean(samples < 0.2)
+```
+### 3E2
+How much posterior probability lies above $p = 0.8$?
+```{r, 3e2}
+mean(samples > 0.8)
+```
+### 3E3
+How much posterior probability lies between $p = 0.2$ and $p = 0.8$?
+```{r, 3e3}
+mean(samples >= 0.2 & samples <= 0.8)
+```
+### 3E4
+20% of the posterior probability lies below which value of $p$?
+```{r, 3e4}
+quantile(samples, probs=0.2)
+```
+### 3E5
+20% of the posterior probability lies above which value of $p$?
+```{r, 3e5}
+quantile(samples, probs=0.8)
+```
+### 3E6
+What is the narrowest 66% interval for the posterior probability?
+```{r, 3e6}
+HPDI(samples, prob=0.66)
+```
+###  3E7
+What is the 66% interval that has the same probability above and below it?
+```{r, 3e7}
+PI(samples, prob=0.66)  ## using the function in rethinking
+prob_tail = (1 - 0.66) / 2
+quantile(samples, probs=c(prob_tail, 1-prob_tail)) ## using base functions
+```
+
+## Medium
+### 3M1
+Suppose the sequence was 8 water in 15 tosses. Construct the posterior starting
+from the same prior.
+```{r, 3m1}
+likelihood2 = binom_likelihood(prob=p_grid, trials=15, successes=8)
+posterior2 = prior * likelihood2
+posterior2 = posterior2 / sum(posterior2)
+plot(p_grid, posterior2, type='l', lwd=2)
+abline(v=0.5, lty=3)
+```
+
+### 3M2
+Draw `r num_samples` samples from this new distribution. What is the 90% HPDI for p?
+```{r, 3m2}
+samples2 = sample(p_grid, size=num_samples, prob=posterior2, replace=TRUE)
+HPDI(samples2, .9)
+```
+
+### 3M3
+Construct a posterior predictive check from this model. What is the probability
+of observing 8 water in 15 tosses?
+```{r, 3m3}
+water_in_15 = rbinom(n=num_samples, size=15, prob=samples2)
+mean(water_in_15 == 8)
+water_in_15 %>% table %>% barplot
+```
+
+### 3M4
+Keeping the posterior from the 8 out of 15 data, calculate the probabilty of
+observing 6 water in 9 tosses.
+```{r, 3m4}
+water_in_9 = rbinom(n=num_samples, size=9, prob=samples2)
+mean(water_in_9 == 6)
+water_in_9 %>% table %>% barplot
+```
+
+### 3M5
+Repeat 3M1 - 3M4 starting from a prior that is 0 below $p = 0.5$ and constant
+otherwise.
+```{r, 3m5}
+# define new prior
+prior3 = ifelse(p_grid < 0.5, 0, 1)
+rle(prior3)  ## checking, should be two chunks of 500
+
+# get new posterior
+posterior3 = prior3 * likelihood2
+posterior3 = posterior3 / sum(posterior3)
+plot(p_grid, posterior3, type='l', lwd=2, col='orange')
+
+# get samples of p and the 90% highest posterior density interval
+samples3 = sample(p_grid, size=num_samples, prob=posterior3, replace=TRUE)
+HPDI(samples3, prob=0.9)
+hist(samples3, breaks=50)
+
+# what's the chance of getting 8 water in 15 tosses from generated data?
+water_in_15_new = rbinom(n=num_samples, size=15, prob=samples3)
+mean(water_in_15_new == 8)
+water_in_15_new %>% table %>% barplot
+
+# what's the chance of getting 6 water in 9 using the same distro for p?
+water_in_9_new = rbinom(n=num_samples, size=9, prob=samples3)
+mean(water_in_9_new == 6)
+water_in_9_new %>% table %>% barplot
+```
