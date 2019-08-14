@@ -1,18 +1,18 @@
 ---
 title: 'Chapter 3: Sampling the Imaginary'
 output:
-  html_document:
-    df_print: paged
+  github_document
 ---
 ```{r, setup, warning=FALSE, message=FALSE}
 library(rethinking)
 library(magrittr)
+data(homeworkch3)
 sessionInfo()
 ```
 
 ## Easy
 Same setup as the globe-tossing example in the chapter
-```{r, easy setup}
+```{r, easy_setup}
 grid_size <- 1000
 num_samples <- 1e4
 p_grid <- seq(from=0, to=1, length.out=grid_size)
@@ -39,31 +39,37 @@ How much posterior probability lies below $p = 0.2$?
 ```{r, 3e1}
 mean(samples < 0.2)
 ```
+
 ### 3E2
 How much posterior probability lies above $p = 0.8$?
 ```{r, 3e2}
 mean(samples > 0.8)
 ```
+
 ### 3E3
 How much posterior probability lies between $p = 0.2$ and $p = 0.8$?
 ```{r, 3e3}
 mean(samples >= 0.2 & samples <= 0.8)
 ```
+
 ### 3E4
 20% of the posterior probability lies below which value of $p$?
 ```{r, 3e4}
 quantile(samples, probs=0.2)
 ```
+
 ### 3E5
 20% of the posterior probability lies above which value of $p$?
 ```{r, 3e5}
 quantile(samples, probs=0.8)
 ```
+
 ### 3E6
 What is the narrowest 66% interval for the posterior probability?
 ```{r, 3e6}
 HPDI(samples, prob=0.66)
 ```
+
 ###  3E7
 What is the 66% interval that has the same probability above and below it?
 ```{r, 3e7}
@@ -136,4 +142,68 @@ water_in_15_new %>% table %>% barplot
 water_in_9_new = rbinom(n=num_samples, size=9, prob=samples3)
 mean(water_in_9_new == 6)
 water_in_9_new %>% table %>% barplot
+```
+
+## Hard
+All problems use the same data available in the book package. The data shows the
+gender for the first child `birth1` and the second child `birth2` for 100
+2-child families (male: 1, female: 0).
+
+### 3H1
+```{r, 3h1}
+prior4 <- rep(1, grid_size)
+all_births = c(birth1, birth2)
+likelihood4 = binom_likelihood(prob=p_grid,
+                               trials=length(all_births),
+                               successes=sum(all_births))
+posterior4 = prior4 * likelihood4
+posterior4 = posterior4/sum(posterior4)
+(p_max = p_grid[which.max(posterior4)])   ## define and return
+plot(p_grid, posterior4, type='h', col='grey')
+abline(v=p_max, lty=3)
+```
+
+### 3H2
+Draw `r num_samples` samples from the posterior above. Get the 50%, 89%, and 97%
+highest density posterior intervals.
+```{r, 3h2}
+samples4 = sample(p_grid, size=num_samples, prob=posterior4, replace=TRUE)
+HPDI(samples=samples4, 0.5)
+HPDI(samples=samples4, 0.89)
+HPDI(samples=samples4, 0.97)
+```
+
+### 3H3
+Simulate `r num_samples` of male births in 200 childbirths based on the current
+model. Show the distribution of this number and compare it to the outcome in the
+data of `r sum(all_births)` males.
+```{r, 3h3}
+males_in_200 = rbinom(num_samples, size=200, prob=samples4)
+dens(males_in_200)
+abline(v=sum(all_births), lty=3)
+```
+
+### 3H4
+Do the same thing for the 100 first-born births.
+```{r, 3h4}
+males_in_100 = rbinom(num_samples, size=100, prob=samples4)
+dens(males_in_100)
+abline(v=sum(birth1), lty=3, col='orange')
+```
+
+### 3H5
+Focus on the births of those boys who followed girls. Find out how many times
+this happened (number of attempts) and how often these were boys (number of 
+successes, in this notation).
+```{r, 3h5}
+# get basic data
+first_girl = birth1 == 0
+birth_after_girl = birth2[first_girl]
+(trials_after_girl = length(birth_after_girl))
+(num_boy_after_girl = sum(birth_after_girl))
+
+# simulate
+males_after_girl = rbinom(num_samples, size=trials_after_girl, prob=samples4)
+dens(males_after_girl)
+abline(v=num_boy_after_girl, lty=3, col='purple')
 ```
