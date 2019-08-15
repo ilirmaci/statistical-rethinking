@@ -347,7 +347,7 @@ Simulate 10^{4} of male births in 200 childbirths based on the current model. Sh
 
 ``` r
 males_in_200 = rbinom(num_samples, size=200, prob=samples4)
-dens(males_in_200)
+males_in_200 %>% density %>% plot(main='Simulated number of male births in 200')
 abline(v=sum(all_births), lty=3)
 ```
 
@@ -359,7 +359,7 @@ Do the same thing for the 100 first-born births.
 
 ``` r
 males_in_100 = rbinom(num_samples, size=100, prob=samples4)
-dens(males_in_100)
+males_in_100 %>% density %>% plot(main='Simulated number of male births in 100')
 abline(v=sum(birth1), lty=3, col='orange')
 ```
 
@@ -387,7 +387,7 @@ birth_after_girl = birth2[first_girl]
 ``` r
 # simulate
 males_after_girl = rbinom(num_samples, size=trials_after_girl, prob=samples4)
-dens(males_after_girl)
+males_after_girl %>% density %>% plot(main=paste('Number of mail births in', trials_after_girl))
 abline(v=num_boy_after_girl, lty=3, col='purple')
 ```
 
