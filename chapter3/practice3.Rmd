@@ -204,6 +204,6 @@ birth_after_girl = birth2[first_girl]
 
 # simulate
 males_after_girl = rbinom(num_samples, size=trials_after_girl, prob=samples4)
-males_after_girl %>% density %>% plot(main=paste('Number of mail births in', trials_after_girl))
+males_after_girl %>% density %>% plot(main=paste('Number of male births in', trials_after_girl))
 abline(v=num_boy_after_girl, lty=3, col='purple')
 ```
